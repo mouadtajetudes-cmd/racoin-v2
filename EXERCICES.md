@@ -16,6 +16,7 @@ Passer à Slim 4. Installer également les outils qui vous seront utiles pour la
 
 ## 4 - Amélioration du code
 
+-Modification Categorie Service (Séparation Controller / Service)
 Passer le code sous les derniers standard PHP 8 (fonction typé,...)
 
 ## 5 - Réfactorisation

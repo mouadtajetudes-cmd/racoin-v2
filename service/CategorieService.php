@@ -12,12 +12,12 @@ class CategorieService
     /** @var array */
     protected $annonce;
 
-    public function getCategories()
+    public function getCategories(): Categorie
     {
         return Categorie::orderBy('nom_categorie')->get()->toArray();
     }
 
-    public function getCategorieContent($chemin, $n)
+    public function getCategorieContent($chemin, $n): void
     {
         $tmp = Annonce::with("Annonceur")->orderBy('id_annonce', 'desc')->where('id_categorie', "=", $n)->get();
         $annonce = [];
@@ -38,7 +38,7 @@ class CategorieService
         $this->annonce = $annonce;
     }
 
-    public function displayCategorie($twig, $menu, $chemin, $cat, $n)
+    public function displayCategorie($twig, $menu, $chemin, $cat, $n): void
     {
         $template = $twig->load("index.html.twig");
         $menu = array(
