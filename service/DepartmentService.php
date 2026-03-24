@@ -1,14 +1,16 @@
 <?php
 
-namespace controller;
+namespace service;
 
 use model\Departement;
 
-class getDepartment {
+class DepartmentService
+{
 
     protected $departments = array();
 
-    public function getAllDepartments() {
+    public function getAllDepartments()
+    {
         return Departement::orderBy('nom_departement')->get()->toArray();
     }
 }

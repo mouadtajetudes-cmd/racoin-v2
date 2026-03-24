@@ -4,39 +4,54 @@ namespace controller;
 
 use model\ApiKey;
 
-class KeyGenerator {
+class KeyGeneratorController
+{
 
-    function show($twig, $menu, $chemin, $cat) {
+    function show($twig, $menu, $chemin, $cat)
+    {
         $template = $twig->load("key-generator.html.twig");
         $menu = array(
-            array('href' => $chemin,
-                'text' => 'Acceuil'),
-            array('href' => $chemin."/search",
-                'text' => "Recherche")
+            array(
+                'href' => $chemin,
+                'text' => 'Acceuil'
+            ),
+            array(
+                'href' => $chemin . "/search",
+                'text' => "Recherche"
+            )
         );
         echo $template->render(array("breadcrumb" => $menu, "chemin" => $chemin, "categories" => $cat));
     }
 
-    function generateKey($twig, $menu, $chemin, $cat, $nom) {
+    function generateKey($twig, $menu, $chemin, $cat, $nom)
+    {
         $nospace_nom = str_replace(' ', '', $nom);
 
-        if($nospace_nom === '') {
+        if ($nospace_nom === '') {
             $template = $twig->load("key-generator-error.html.twig");
             $menu = array(
-                array('href' => $chemin,
-                    'text' => 'Acceuil'),
-                array('href' => $chemin."/search",
-                    'text' => "Recherche")
+                array(
+                    'href' => $chemin,
+                    'text' => 'Acceuil'
+                ),
+                array(
+                    'href' => $chemin . "/search",
+                    'text' => "Recherche"
+                )
             );
 
             echo $template->render(array("breadcrumb" => $menu, "chemin" => $chemin, "categories" => $cat));
         } else {
             $template = $twig->load("key-generator-result.html.twig");
             $menu = array(
-                array('href' => $chemin,
-                    'text' => 'Acceuil'),
-                array('href' => $chemin."/search",
-                    'text' => "Recherche")
+                array(
+                    'href' => $chemin,
+                    'text' => 'Acceuil'
+                ),
+                array(
+                    'href' => $chemin . "/search",
+                    'text' => "Recherche"
+                )
             );
 
             // Génere clé unique de 13 caractères
@@ -50,9 +65,5 @@ class KeyGenerator {
 
             echo $template->render(array("breadcrumb" => $menu, "chemin" => $chemin, "categories" => $cat, "key" => $key));
         }
-
     }
-
 }
-
-?>

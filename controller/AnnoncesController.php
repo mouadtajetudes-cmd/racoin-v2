@@ -6,7 +6,7 @@ use model\Annonce;
 use model\Photo;
 use model\Annonceur;
 
-class index
+class AnnoncesController
 {
     protected $annonce = array();
 
