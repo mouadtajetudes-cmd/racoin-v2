@@ -2,53 +2,55 @@
 require 'vendor/autoload.php';
 
 use controller\AnnoncesController;
-use controller\item;
 use controller\ItemController;
 use controller\KeyGeneratorController;
 use controller\SearchController;
-use db\connection;
-
+use db\connection as Connection;
 use model\Annonce;
 use model\Categorie;
 use model\Annonceur;
 use model\Departement;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use service\AnnonceurService;
 use service\CategorieService;
 use service\DepartmentService;
 use service\ItemService;
-use Slim\App;
-use Slim\Http\Request;
-use Slim\Http\Response;
+use Slim\Factory\AppFactory;
+use Slim\Routing\RouteCollectorProxy;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
 
-connection::createConn();
+Connection::createConn();
 
 // Initialisation de Slim
-$app = new App([
-    'settings' => [
-        'displayErrorDetails' => true,
-    ],
-]);
-
+// $app = new App([
+//     'settings' => [
+//         'displayErrorDetails' => true,
+//     ],
+// ]);
+$app = AppFactory::create();
+$app->addErrorMiddleware(true, true, true);
 // Initialisation de Twig
 $loader = new FilesystemLoader(__DIR__ . '/template');
 $twig   = new Environment($loader);
 
 // Ajout d'un middleware pour le trailing slash
-$app->add(function (Request $request, Response $response, $next) {
+$app->add(function (ServerRequestInterface $request, RequestHandlerInterface $handler) use ($app): ResponseInterface {
     $uri  = $request->getUri();
     $path = $uri->getPath();
     if ($path != '/' && str_ends_with($path, '/')) {
         $uri = $uri->withPath(substr($path, 0, -1));
         if ($request->getMethod() == 'GET') {
-            return $response->withRedirect((string)$uri, 301);
-        } else {
-            return $next($request->withUri($uri), $response);
+            return $app->getResponseFactory()
+                ->createResponse(301)
+                ->withHeader('Location', (string) $uri);
         }
+        return $handler->handle($request->withUri($uri));
     }
-    return $next($request, $response);
+    return $handler->handle($request);
 });
 
 
@@ -77,50 +79,58 @@ $chemin = dirname($_SERVER['SCRIPT_NAME']);
 $cat = new CategorieService();
 $dpt = new DepartmentService();
 
-$app->get('/', function () use ($twig, $menu, $chemin, $cat) {
+$app->get('/', function ($request, $response) use ($twig, $menu, $chemin, $cat) {
     $index = new AnnoncesController();
     $index->displayAllAnnonce($twig, $menu, $chemin, $cat->getCategories());
+    return $response;
 });
 
 $app->get('/item/{n}', function ($request, $response, $arg) use ($twig, $menu, $chemin, $cat) {
     $n     = $arg['n'];
     $item = new ItemController();
     $item->afficherItem($twig, $menu, $chemin, $n, $cat->getCategories());
+    return $response;
 });
 
-$app->get('/add', function () use ($twig, $app, $menu, $chemin, $cat, $dpt) {
+$app->get('/add', function ($request, $response) use ($twig, $app, $menu, $chemin, $cat, $dpt) {
     $ajout = new ItemService();
     $ajout->addItemView($twig, $menu, $chemin, $cat->getCategories(), $dpt->getAllDepartments());
+    return $response;
 });
 
-$app->post('/add', function ($request) use ($twig, $app, $menu, $chemin) {
+$app->post('/add', function ($request, $response) use ($twig, $app, $menu, $chemin) {
     $allPostVars = $request->getParsedBody();
     $ajout       = new ItemService();
     $ajout->addNewItem($twig, $menu, $chemin, $allPostVars);
+    return $response;
 });
 
 $app->get('/item/{id}/edit', function ($request, $response, $arg) use ($twig, $menu, $chemin) {
     $id   = $arg['id'];
     $item = new ItemController();
     $item->modifyGet($twig, $menu, $chemin, $id);
+    return $response;
 });
 $app->post('/item/{id}/edit', function ($request, $response, $arg) use ($twig, $app, $menu, $chemin, $cat, $dpt) {
     $id          = $arg['id'];
     $allPostVars = $request->getParsedBody();
     $item        = new ItemController();
     $item->modifyPost($twig, $menu, $chemin, $id, $allPostVars, $cat->getCategories(), $dpt->getAllDepartments());
+    return $response;
 });
 
-$app->map(['GET, POST'], '/item/{id}/confirm', function ($request, $response, $arg) use ($twig, $app, $menu, $chemin) {
+$app->map(['GET', 'POST'], '/item/{id}/confirm', function ($request, $response, $arg) use ($twig, $app, $menu, $chemin) {
     $id   = $arg['id'];
     $allPostVars = $request->getParsedBody();
     $item        = new ItemController();
     $item->edit($twig, $menu, $chemin, $id, $allPostVars);
+    return $response;
 });
 
-$app->get('/search', function () use ($twig, $menu, $chemin, $cat) {
+$app->get('/search', function ($request, $response) use ($twig, $menu, $chemin, $cat) {
     $s = new SearchController();
     $s->show($twig, $menu, $chemin, $cat->getCategories());
+    return $response;
 });
 
 
@@ -128,33 +138,38 @@ $app->post('/search', function ($request, $response) use ($app, $twig, $menu, $c
     $array = $request->getParsedBody();
     $s     = new SearchController();
     $s->research($array, $twig, $menu, $chemin, $cat->getCategories());
+    return $response;
 });
 
 $app->get('/annonceur/{n}', function ($request, $response, $arg) use ($twig, $menu, $chemin, $cat) {
     $n         = $arg['n'];
     $annonceur = new AnnonceurService();
     $annonceur->afficherAnnonceur($twig, $menu, $chemin, $n, $cat->getCategories());
+    return $response;
 });
 
 $app->get('/del/{n}', function ($request, $response, $arg) use ($twig, $menu, $chemin) {
     $n    = $arg['n'];
     $item = new ItemController();
     $item->supprimerItemGet($twig, $menu, $chemin, $n);
+    return $response;
 });
 
 $app->post('/del/{n}', function ($request, $response, $arg) use ($twig, $menu, $chemin, $cat) {
     $n    = $arg['n'];
     $item = new ItemController();
     $item->supprimerItemPost($twig, $menu, $chemin, $n, $cat->getCategories());
+    return $response;
 });
 
 $app->get('/cat/{n}', function ($request, $response, $arg) use ($twig, $menu, $chemin, $cat) {
     $n = $arg['n'];
     $categorie = new CategorieService();
     $categorie->displayCategorie($twig, $menu, $chemin, $cat->getCategories(), $n);
+    return $response;
 });
 
-$app->get('/api(/)', function () use ($twig, $menu, $chemin, $cat) {
+$app->get('/api(/)', function ($request, $response) use ($twig, $menu, $chemin, $cat) {
     $template = $twig->load('api.html.twig');
     $menu     = array(
         array(
@@ -167,19 +182,19 @@ $app->get('/api(/)', function () use ($twig, $menu, $chemin, $cat) {
         )
     );
     echo $template->render(array('breadcrumb' => $menu, 'chemin' => $chemin));
+    return $response;
 });
 
-$app->group('/api', function () use ($app, $twig, $menu, $chemin, $cat) {
+$app->group('/api', function (RouteCollectorProxy $group) use ($twig, $menu, $chemin, $cat) {
 
-    $app->group('/annonce', function () use ($app) {
+    $group->group('/annonce', function (RouteCollectorProxy $group) {
 
-        $app->get('/{id}', function ($request, $response, $arg) use ($app) {
+        $group->get('/{id}', function ($request, $response, $arg) {
             $id          = $arg['id'];
             $annonceList = ['id_annonce', 'id_categorie as categorie', 'id_annonceur as annonceur', 'id_departement as departement', 'prix', 'date', 'titre', 'description', 'ville'];
             $return      = Annonce::select($annonceList)->find($id);
 
             if (isset($return)) {
-                $response->headers->set('Content-Type', 'application/json');
                 $return->categorie     = Categorie::find($return->categorie);
                 $return->annonceur     = Annonceur::select('email', 'nom_annonceur', 'telephone')
                     ->find($return->annonceur);
@@ -187,36 +202,40 @@ $app->group('/api', function () use ($app, $twig, $menu, $chemin, $cat) {
                 $links                 = [];
                 $links['self']['href'] = '/api/annonce/' . $return->id_annonce;
                 $return->links         = $links;
-                echo $return->toJson();
-            } else {
-                $app->notFound();
+                $response->getBody()->write($return->toJson());
+                return $response->withHeader('Content-Type', 'application/json');
             }
+
+            return $response->withStatus(404);
         });
     });
 
-    $app->group('/annonces(/)', function () use ($app) {
+    $group->group('/annonces', function (RouteCollectorProxy $group) {
 
-        $app->get('/', function ($request, $response) use ($app) {
+        $group->get('', function ($request, $response) {
             $annonceList = ['id_annonce', 'prix', 'titre', 'ville'];
-            $response->headers->set('Content-Type', 'application/json');
             $a     = Annonce::all($annonceList);
             $links = [];
             foreach ($a as $ann) {
                 $links['self']['href'] = '/api/annonce/' . $ann->id_annonce;
                 $ann->links            = $links;
             }
-            $links['self']['href'] = '/api/annonces/';
-            $a->links              = $links;
-            echo $a->toJson();
+            $response->getBody()->write($a->toJson());
+            return $response->withHeader('Content-Type', 'application/json');
+        });
+
+        $group->get('/', function ($request, $response) {
+            return $response
+                ->withHeader('Location', '/api/annonces')
+                ->withStatus(301);
         });
     });
 
 
-    $app->group('/categorie', function () use ($app) {
+    $group->group('/categorie', function (RouteCollectorProxy $group) {
 
-        $app->get('/{id}', function ($request, $response, $arg) use ($app) {
+        $group->get('/{id}', function ($request, $response, $arg) {
             $id = $arg['id'];
-            $response->headers->set('Content-Type', 'application/json');
             $a     = Annonce::select('id_annonce', 'prix', 'titre', 'ville')
                 ->where('id_categorie', '=', $id)
                 ->get();
@@ -231,35 +250,42 @@ $app->group('/api', function () use ($app, $twig, $menu, $chemin, $cat) {
             $links['self']['href'] = '/api/categorie/' . $id;
             $c->links              = $links;
             $c->annonces           = $a;
-            echo $c->toJson();
+            $response->getBody()->write($c->toJson());
+            return $response->withHeader('Content-Type', 'application/json');
         });
     });
 
-    $app->group('/categories(/)', function () use ($app) {
-        $app->get('/', function ($request, $response, $arg) use ($app) {
-            $response->headers->set('Content-Type', 'application/json');
+    $group->group('/categories', function (RouteCollectorProxy $group) {
+        $group->get('', function ($request, $response) {
             $c     = Categorie::get();
             $links = [];
             foreach ($c as $cat) {
                 $links['self']['href'] = '/api/categorie/' . $cat->id_categorie;
                 $cat->links            = $links;
             }
-            $links['self']['href'] = '/api/categories/';
-            $c->links              = $links;
-            echo $c->toJson();
+            $response->getBody()->write($c->toJson());
+            return $response->withHeader('Content-Type', 'application/json');
+        });
+
+        $group->get('/', function ($request, $response) {
+            return $response
+                ->withHeader('Location', '/api/categories')
+                ->withStatus(301);
         });
     });
 
-    $app->get('/key', function () use ($app, $twig, $menu, $chemin, $cat) {
+    $group->get('/key', function ($request, $response) use ($twig, $menu, $chemin, $cat) {
         $kg = new KeyGeneratorController();
         $kg->show($twig, $menu, $chemin, $cat->getCategories());
+        return $response;
     });
 
-    $app->post('/key', function () use ($app, $twig, $menu, $chemin, $cat) {
+    $group->post('/key', function ($request, $response) use ($twig, $menu, $chemin, $cat) {
         $nom = $_POST['nom'];
 
         $kg = new KeyGeneratorController();
         $kg->generateKey($twig, $menu, $chemin, $cat->getCategories(), $nom);
+        return $response;
     });
 });
 

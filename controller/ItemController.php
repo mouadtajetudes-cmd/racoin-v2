@@ -12,6 +12,16 @@ use model\Categorie;
 #[AllowDynamicProperties] class ItemController
 {
     public function __construct() {}
+    /**
+     * Affiche une annonce
+     *
+     * @param $twig
+     * @param $menu
+     * @param $chemin
+     * @param $n
+     * @param $cat
+     * @return void
+     */
     function afficherItem($twig, $menu, $chemin, $n, $cat): void
     {
 
@@ -51,7 +61,15 @@ use model\Categorie;
         ));
     }
 
-    function supprimerItemGet($twig, $menu, $chemin, $n)
+    /**
+     * Affiche la page de confirmation de suppression d'une annonce
+     * @param $twig
+     * @param $menu
+     * @param $chemin
+     * @param $n
+     * @return void
+     */
+    function supprimerItemGet($twig, $menu, $chemin, $n): void
     {
         $this->annonce = Annonce::find($n);
         if (!isset($this->annonce)) {
@@ -66,8 +84,16 @@ use model\Categorie;
         ));
     }
 
-
-    function supprimerItemPost($twig, $menu, $chemin, $n, $cat)
+    /**
+     * Supprime une annonce si le mot de passe est correct
+     * @param $twig
+     * @param $menu
+     * @param $chemin
+     * @param $n
+     * @param $cat
+     * @return void
+     */
+    function supprimerItemPost($twig, $menu, $chemin, $n, $cat): void
     {
         $this->annonce = Annonce::find($n);
         $reponse = false;
@@ -87,7 +113,15 @@ use model\Categorie;
         ));
     }
 
-    function modifyGet($twig, $menu, $chemin, $id)
+    /**
+     * Affiche la page de modification d'une annonce
+     * @param $twig
+     * @param $menu
+     * @param $chemin
+     * @param $id
+     * @return void
+     */
+    function modifyGet($twig, $menu, $chemin, $id): void
     {
         $this->annonce = Annonce::find($id);
         if (!isset($this->annonce)) {
@@ -102,7 +136,17 @@ use model\Categorie;
         ));
     }
 
-    function modifyPost($twig, $menu, $chemin, $n, $cat, $dpt)
+    /**
+     * Affiche la page de modification d'une annonce après soumission
+     * @param $twig
+     * @param $menu
+     * @param $chemin
+     * @param $n
+     * @param $cat
+     * @param $dpt
+     * @return void
+     */
+    function modifyPost($twig, $menu, $chemin, $n, $cat, $dpt): void
     {
         $this->annonce = Annonce::find($n);
         $this->annonceur = Annonceur::find($this->annonce->id_annonceur);
@@ -128,6 +172,15 @@ use model\Categorie;
         ));
     }
 
+    /**
+     * Affiche la page de confirmation de modification d'une annonce après soumission
+     * @param $twig
+     * @param $menu
+     * @param $chemin
+     * @param $allPostVars
+     * @param $id
+     * @return void
+     */
     function edit($twig, $menu, $chemin, $allPostVars, $id)
     {
 
